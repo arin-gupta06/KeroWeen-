@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>SILENT SHADOWS: The Samhain Extraction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;900&family=Creepster&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="assets/three.min.js"></script>
+</head>
+<body class="game-body">
+  <!-- Game 3D Canvas Container -->
+  <div id="game-container"></div>
+
+  <!-- Diegetic Horror HUD Overlays -->
+  <div class="hud-layer" id="hud-layer">
+    <!-- VHS Analog Grain & Scanlines -->
+    <div class="vhs-scanlines"></div>
+    <div class="vhs-vignette"></div>
+    <div class="vhs-timestamp" id="hud-timestamp">OCT 31 '98 03:14:00 AM</div>
+
+    <!-- Center Reticle / Crosshair & Interaction Prompt -->
+    <div class="reticle" id="reticle"></div>
+    <div class="interact-prompt" id="interact-prompt">
+      <span class="key-badge">E</span> <span id="prompt-text">INTERACT</span>
+    </div>
+
+    <!-- Top-Right: Night-Vision Bodycam PiP -->
+    <div class="bodycam-pip" id="bodycam-pip">
+      <div class="pip-header">
+        <span class="rec-blink">●</span> REC [BODYCAM-01]
+        <span class="bpm-counter" id="hud-bpm">♥ 98 BPM</span>
+      </div>
+      <div class="pip-screen">
+        <video id="webcam-stream" autoplay playsinline muted></video>
+        <div class="cam-fallback" id="cam-fallback">
+          <span>NO VIDEO FEED</span>
+          <small>Click "ENABLE BODYCAM" in menu</small>
+        </div>
+        <div class="nv-filter"></div>
+        <div class="nv-scanlines"></div>
+      </div>
+    </div>
+
+    <!-- Bottom-Left: Real-Time Audio Decibel Meter -->
+    <div class="hud-audio-meter" id="hud-audio-meter">
+      <div class="meter-label">
+        <span>ACOUSTIC THREAT SENSOR</span>
+        <span id="db-display" class="db-num">0 dB</span>
+      </div>
+      <div class="meter-track">
+        <div class="meter-fill" id="audio-fill"></div>
+        <div class="meter-danger-line" title="Threat Threshold"></div>
+      </div>
+      <div class="meter-status" id="audio-status">SAFE • STAY SILENT</div>
+    </div>
+
+    <!-- Bottom-Right: Flashlight Battery & Stance Indicator -->
+    <div class="hud-controls-status">
+      <div class="stance-indicator" id="stance-indicator">STANCE: STANDING</div>
+      <div class="battery-status">
+        <span>FLASHLIGHT [F]</span>
+        <div class="battery-bar"><div class="battery-fill" id="battery-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- Top-Center: Current Objective Banner -->
+    <div class="hud-objective" id="hud-objective">
+      <span class="obj-tag">OBJECTIVE</span>
+      <span class="obj-text" id="obj-text">Explore the house. Find the Silver Key to unlock the Crypt.</span>
+    </div>
+
+    <!-- Danger Alarm Banner (When loud sound made) -->
+    <div class="threat-alert" id="threat-alert">
+      ⚠️ TOO LOUD! ENTITY IS HUNTING YOU! ⚠️
+    </div>
+
+    <!-- Jumpscare Screen Overlay -->
+    <div class="jumpscare-overlay" id="jumpscare-overlay">
+      <div class="monster-face" id="monster-face"></div>
+      <div class="static-distortion"></div>
+    </div>
+  </div>
+
+  <!-- Start / Menu / Hardware Setup Modal -->
+  <div class="menu-modal" id="start-menu">
+    <div class="menu-backdrop"></div>
+    <div class="menu-card">
+      <div class="menu-pumpkin">🎃</div>
+      <h1 class="menu-title">SILENT SHADOWS</h1>
+      <p class="menu-tagline">THE SAMHAIN EXTRACTION • FIRST-PERSON HORROR</p>
+      
+      <div class="menu-rules">
+        <p>You have entered a haunted Victorian manor to steal the <strong>Cursed Horned Skull Relic</strong> from the occult crypt.</p>
+        <p class="warning-text">⚠️ <strong>THE ENTITY HEARS YOU THROUGH YOUR MICROPHONE.</strong> Whispering, heavy breathing, or screaming in real life will reveal your location!</p>
+      </div>
+
+      <!-- Hardware Permission Buttons -->
+      <div class="hardware-row">
+        <button id="btn-toggle-mic" class="hw-btn">
+          <span class="hw-icon">🎙️</span>
+          <div>
+            <strong>Enable Microphone</strong>
+            <small id="mic-status-label">Listen for your real breathing & screams</small>
+          </div>
+        </button>
+
+        <button id="btn-toggle-cam" class="hw-btn">
+          <span class="hw-icon">📹</span>
+          <div>
+            <strong>Enable Bodycam</strong>
+            <small id="cam-status-label">Show night-vision player face feed</small>
+          </div>
+        </button>
+      </div>
+
+      <!-- Live Mic Preview Bar in Menu -->
+      <div class="menu-mic-preview">
+        <label>Microphone Test Bar:</label>
+        <div class="menu-meter-track">
+          <div class="menu-meter-fill" id="menu-mic-fill"></div>
+        </div>
+      </div>
+
+      <!-- Controls Guide -->
+      <div class="controls-guide">
+        <div class="ctrl-col">
+          <span><code>W A S D</code> / Arrows</span> — Move
+        </div>
+        <div class="ctrl-col">
+          <span><code>MOUSE</code></span> — 360° Look Around
+        </div>
+        <div class="ctrl-col">
+          <span><code>C</code> / <code>Ctrl</code></span> — Crouch (Silent Creep)
+        </div>
+        <div class="ctrl-col">
+          <span><code>SHIFT</code></span> — Sprint (Makes Noise!)
+        </div>
+        <div class="ctrl-col">
+          <span><code>E</code> / Left-Click</span> — Interact / Grab Relic
+        </div>
+        <div class="ctrl-col">
+          <span><code>F</code></span> — Flashlight
+        </div>
+      </div>
+
+      <!-- Start Button -->
+      <button id="btn-play-game" class="play-btn">
+        ENTER THE HOUSE (CLICK TO START)
+      </button>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div class="end-modal" id="game-over-modal">
+    <div class="end-card death-card">
+      <h1 class="death-title">YOU DIED</h1>
+      <p class="death-subtitle">The entity heard your sound in the dark.</p>
+      <div class="end-stats" id="death-stats">Time survived: 0m 45s</div>
+      <button class="retry-btn" id="btn-retry">TRY AGAIN</button>
+    </div>
+  </div>
+
+  <!-- Victory Screen -->
+  <div class="end-modal" id="victory-modal">
+    <div class="end-card win-card">
+      <div class="win-icon">💀✨</div>
+      <h1 class="win-title">YOU ESCAPED ALIVE</h1>
+      <p class="win-subtitle">You extracted the Cursed Horned Skull and escaped the manor before midnight.</p>
+      <div class="end-stats" id="win-stats">Extraction completed successfully!</div>
+      <button class="retry-btn win-btn" id="btn-play-again">PLAY AGAIN</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
